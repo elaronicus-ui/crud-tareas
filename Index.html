@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Tareas — CRUD</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f4ff;
+      color: #1f2937;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white;
+      text-align: center;
+      padding:  ️2rem 1rem;
+    }
+
+    header h1 {
+      font-size:  ️1.8rem;
+      margin-bottom:  ️0.25rem;
+    }
+
+    header p {
+      opacity:  ️0.85;
+      font-size:  ️0.95rem;
+    }
+
+    main {
+      flex:  ️1;
+      width:  ️100%;
+      max-width:  ️800px;
+      margin:  ️2rem auto;
+      padding:  ️0 1rem;
+      display: grid;
+      grid-template-columns: ️1fr 1.5fr;
+      gap:  ️1.5rem;
+    }
+
+    section {
+      background: white;
+      border-radius:  ️12px;
+      padding:  ️1.25rem;
+      box-shadow:  ️0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    section h2 {
+      font-size:  ️1.1rem;
+      margin-bottom:  ️1rem;
+      color: #1e3a8a;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap:  ️0.75rem;
+    }
+
+    input,
+    textarea {
+      width:  ️100%;
+      padding:  ️0.6rem 0.75rem;
+      border:  ️1px solid #d1d5db;
+      border-radius:  ️8px;
+      font-size:  ️0.95rem;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height:  ️70px;
+    }
+
+    button {
+      padding:  ️0.6rem 1rem;
+      border: none;
+      border-radius:  ️8px;
+      font-size:  ️0.9rem;
+      font-weight:  ️600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button[type="submit"] {
+      background: #3b82f6;
+      color: white;
+    }
+
+    button[type="submit"]:hover {
+      background: #2563eb;
+    }
+
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap:  ️0.6rem;
+    }
+
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap:  ️0.75rem;
+      padding:  ️0.75rem;
+      background: #f8fafc;
+      border:  ️1px solid #e5e7eb;
+      border-radius:  ️8px;
+    }
+
+    .task-info strong {
+      display: block;
+    }
+
+    .task-info p {
+      font-size:  ️0.85rem;
+      color: #6b7280;
+      margin-top:  ️0.2rem;
+    }
+
+    .task-actions {
+      display: flex;
+      gap:  ️0.4rem;
+      flex-shrink:  ️0;
+    }
+
+    .task-actions .edit {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .task-actions .delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .empty {
+      text-align: center;
+      color: #9ca3af;
+      padding:  ️1.5rem 0;
+    }
+
+    footer {
+      background: #1e293b;
+      color: #cbd5e1;
+      text-align: center;
+      padding:  ️1rem;
+      font-size:  ️0.85rem;
+    }
+
+    /* Responsivo */
+    @media (max-width:  ️640px) {
+      main {
+        grid-template-columns:  ️1fr;
+      }
+      .task-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📋 Gestor de Tareas</h1>
+    <p>Aplicación CRUD con localStorage</p>
+  </header>
+
+  <main>
+    <section class="form-section">
+      <h2>➕ Crear tarea</h2>
+      <form id="taskForm">
+        <input type="text" id="taskName" placeholder="Nombre de la tarea" required>
+        <textarea id="taskDesc" placeholder="Descripción (opcional)"></textarea>
+        <button type="submit">Guardar tarea</button>
+      </form>
+    </section>
+
+    <section class="list-section">
+      <h2>📄 Mis tareas</h2>
+      <ul id="taskList" class="task-list"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Proyecto 2 — Web Dev Fundamentals · CRUD con localStorage</p>
+  </footer>
+
+  <script>
+    const STORAGE_KEY = 'tasks';
+
+    // Referencias al DOM
+    const taskForm = document.getElementById('taskForm');
+    const taskName = document.getElementById('taskName');
+    const taskDesc = document.getElementById('taskDesc');
+    const taskList = document.getElementById('taskList');
+
+    // --- CRUD ---
+
+    // Leer / recuperar datos de localStorage
+    function getTasks() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+
+    // Persistir / guardar datos en localStorage
+    function saveTasks(tasks) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    // Create — crear tarea
+    function addTask(name, desc) {
+      const tasks = getTasks();
+      tasks.push({
+        id: Date.now(),
+        name,
+        desc,
+        done: false
+      });
+      saveTasks(tasks);
+      renderTasks();
+    }
+
+    // Read — mostrar tareas en el DOM
+    function renderTasks() {
+      const tasks = getTasks();
+      taskList.innerHTML = '';
+
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<li class="empty">No hay tareas todavía. ¡Crea la primera!</li>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+
+        const info = document.createElement('div');
+        info.className = 'task-info';
+
+        const strong = document.createElement('strong');
+        strong.textContent = task.name;
+        info.appendChild(strong);
+
+        if (task.desc) {
+          const p = document.createElement('p');
+          p.textContent = task.desc;
+          info.appendChild(p);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'task-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit';
+        editBtn.textContent = 'Editar';
+        editBtn.dataset.id = task.id;
+        editBtn.dataset.action = 'edit';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete';
+        deleteBtn.textContent = 'Borrar';
+        deleteBtn.dataset.id = task.id;
+        deleteBtn.dataset.action = 'delete';
+
+        actions.append(editBtn, deleteBtn);
+        li.append(info, actions);
+        taskList.appendChild(li);
+      });
+    }
+
+    // Update — actualizar tarea
+    function updateTask(id) {
+      const tasks = getTasks();
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const newName = prompt('Nuevo nombre:', task.name);
+      if (newName === null || !newName.trim()) return;
+
+      task.name = newName.trim();
+      saveTasks(tasks);
+      renderTasks();
+    }
+
+    // Delete — borrar tarea
+    function deleteTask(id) {
+      const tasks = getTasks();
+      const filtered = tasks.filter(t => t.id !== id);
+      saveTasks(filtered);
+      renderTasks();
+    }
+
+    // Delegación de eventos para Editar / Borrar
+    taskList.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      const id = Number(btn.dataset.id);
+      if (btn.dataset.action === 'edit') updateTask(id;
+      if (btn.dataset.action === 'delete') deleteTask(id;
+    });
+
+    // Evento para crear
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = taskName.value.trim();
+      if (!name) return;
+      addTask(name, taskDesc.value.trim());
+      taskForm.reset();
+      taskName.focus();
+    });
+
+    // Cargar al inicio
+    renderTasks();
+  </script>
+</body>
+</html>
